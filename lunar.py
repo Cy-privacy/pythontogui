@@ -1,74 +1,177 @@
 import json
 import os
 import sys
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                            QPushButton, QLabel, QStackedWidget, QLineEdit)
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QFont, QIcon
+from qt_material import apply_stylesheet
 from pynput import keyboard
 from termcolor import colored
+
+class LunarGUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Lunar AI Aimbot")
+        self.setFixedSize(900, 600)
+        
+        # Create stacked widget for multiple pages
+        self.stacked_widget = QStackedWidget()
+        self.setCentralWidget(self.stacked_widget)
+        
+        # Create pages
+        self.main_page = self.create_main_page()
+        self.settings_page = self.create_settings_page()
+        
+        # Add pages to stacked widget
+        self.stacked_widget.addWidget(self.main_page)
+        self.stacked_widget.addWidget(self.settings_page)
+        
+        # Initialize animations
+        self.setup_animations()
+        
+        # Apply modern style
+        apply_stylesheet(self, theme='dark_teal.xml')
+        
+    def create_main_page(self):
+        page = QWidget()
+        layout = QVBoxLayout()
+        
+        # Title
+        title = QLabel("LUNAR AI AIMBOT")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setFont(QFont('Arial', 24, QFont.Weight.Bold))
+        layout.addWidget(title)
+        
+        # Status indicators
+        self.aimbot_status = QLabel("Aimbot Status: Inactive")
+        self.aimbot_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.aimbot_status)
+        
+        # Control buttons
+        start_btn = QPushButton("Start Aimbot (F1)")
+        start_btn.clicked.connect(self.toggle_aimbot)
+        layout.addWidget(start_btn)
+        
+        settings_btn = QPushButton("Settings")
+        settings_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(1))
+        layout.addWidget(settings_btn)
+        
+        page.setLayout(layout)
+        return page
+    
+    def create_settings_page(self):
+        page = QWidget()
+        layout = QVBoxLayout()
+        
+        # Settings title
+        title = QLabel("Settings")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setFont(QFont('Arial', 20, QFont.Weight.Bold))
+        layout.addWidget(title)
+        
+        # Sensitivity settings
+        self.xy_sens_input = QLineEdit()
+        self.xy_sens_input.setPlaceholderText("X-Y Sensitivity")
+        layout.addWidget(self.xy_sens_input)
+        
+        self.targeting_sens_input = QLineEdit()
+        self.targeting_sens_input.setPlaceholderText("Targeting Sensitivity")
+        layout.addWidget(self.targeting_sens_input)
+        
+        # Save button
+        save_btn = QPushButton("Save Settings")
+        save_btn.clicked.connect(self.save_settings)
+        layout.addWidget(save_btn)
+        
+        # Back button
+        back_btn = QPushButton("Back")
+        back_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
+        layout.addWidget(back_btn)
+        
+        page.setLayout(layout)
+        return page
+    
+    def setup_animations(self):
+        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_animation.setDuration(500)
+        self.fade_animation.setStartValue(0)
+        self.fade_animation.setEndValue(1)
+        self.fade_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        
+    def toggle_aimbot(self):
+        if hasattr(self, 'aimbot_active') and self.aimbot_active:
+            self.aimbot_active = False
+            self.aimbot_status.setText("Aimbot Status: Inactive")
+            if hasattr(self, 'aimbot'):
+                self.aimbot.clean_up()
+        else:
+            self.aimbot_active = True
+            self.aimbot_status.setText("Aimbot Status: Active")
+            if hasattr(self, 'aimbot'):
+                self.aimbot.update_status_aimbot()
+    
+    def save_settings(self):
+        try:
+            xy_sens = float(self.xy_sens_input.text())
+            targeting_sens = float(self.targeting_sens_input.text())
+            
+            sensitivity_settings = {
+                "xy_sens": xy_sens,
+                "targeting_sens": targeting_sens,
+                "xy_scale": 10/xy_sens,
+                "targeting_scale": 1000/(targeting_sens * xy_sens)
+            }
+            
+            path = "lib/config"
+            if not os.path.exists(path):
+                os.makedirs(path)
+                
+            with open('lib/config/config.json', 'w') as outfile:
+                json.dump(sensitivity_settings, outfile)
+                
+            # Show success message
+            self.statusBar().showMessage("Settings saved successfully!", 3000)
+            
+        except ValueError:
+            self.statusBar().showMessage("Invalid input! Please enter valid numbers.", 3000)
 
 def on_release(key):
     try:
         if key == keyboard.Key.f1:
-            Aimbot.update_status_aimbot()
+            window.toggle_aimbot()
         if key == keyboard.Key.f2:
-            Aimbot.clean_up()
+            if hasattr(window, 'aimbot'):
+                window.aimbot.clean_up()
     except NameError:
         pass
 
 def main():
-    global lunar
-    lunar = Aimbot(collect_data = "collect_data" in sys.argv)
-    lunar.start()
-
-def setup():
-    path = "lib/config"
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    print("[INFO] In-game X and Y axis sensitivity should be the same")
-    def prompt(str):
-        valid_input = False
-        while not valid_input:
-            try:
-                number = float(input(str))
-                valid_input = True
-            except ValueError:
-                print("[!] Invalid Input. Make sure to enter only the number (e.g. 6.9)")
-        return number
-
-    xy_sens = prompt("X-Axis and Y-Axis Sensitivity (from in-game settings): ")
-    targeting_sens = prompt("Targeting Sensitivity (from in-game settings): ")
-
-    print("[INFO] Your in-game targeting sensitivity must be the same as your scoping sensitivity")
-    sensitivity_settings = {"xy_sens": xy_sens, "targeting_sens": targeting_sens, "xy_scale": 10/xy_sens, "targeting_scale": 1000/(targeting_sens * xy_sens)}
-
-    with open('lib/config/config.json', 'w') as outfile:
-        json.dump(sensitivity_settings, outfile)
-    print("[INFO] Sensitivity configuration complete")
+    global window
+    app = QApplication(sys.argv)
+    window = LunarGUI()
+    
+    # Start fade-in animation
+    window.show()
+    window.fade_animation.start()
+    
+    # Setup keyboard listener
+    listener = keyboard.Listener(on_release=on_release)
+    listener.start()
+    
+    # Initialize aimbot if config exists
+    if os.path.exists("lib/config/config.json"):
+        from lib.aimbot import Aimbot
+        window.aimbot = Aimbot(collect_data = "collect_data" in sys.argv)
+    
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-
-    print(colored('''
-
-  _    _   _ _   _    _    ____     _     ___ _____ _____ 
- | |  | | | | \ | |  / \  |  _ \   | |   |_ _|_   _| ____|
- | |  | | | |  \| | / _ \ | |_) |  | |    | |  | | |  _|  
- | |__| |_| | |\  |/ ___ \|  _ <   | |___ | |  | | | |___ 
- |_____\___/|_| \_/_/   \_\_| \_\  |_____|___| |_| |_____|
-                                                                         
-(Neural Network Aimbot)''', "green"))
     
-    print(colored('To get full version of Lunar V2, visit https://gannonr.com/lunar OR join the discord: discord.gg/aiaimbot', "red"))
-
-    path_exists = os.path.exists("lib/config/config.json")
-    if not path_exists or ("setup" in sys.argv):
-        if not path_exists:
-            print("[!] Sensitivity configuration is not set")
-        setup()
     path_exists = os.path.exists("lib/data")
     if "collect_data" in sys.argv and not path_exists:
         os.makedirs("lib/data")
-    from lib.aimbot import Aimbot
-    listener = keyboard.Listener(on_release=on_release)
-    listener.start()
+    
     main()
