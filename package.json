@@ -2,9 +2,6 @@
   "name": "lunar-ai-aimbot",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "build": "pyinstaller --clean build.spec"
-  },
   "dependencies": {
     "pyinstaller": "^5.13.2"
   }

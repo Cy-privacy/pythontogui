@@ -29,7 +29,6 @@ a = Analysis(
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
-    collect_all=['torch', 'torchvision', 'ultralytics']
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
