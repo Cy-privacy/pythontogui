@@ -8,6 +8,7 @@ from PyQt6.QtGui import QFont, QIcon
 from qt_material import apply_stylesheet
 from pynput import keyboard
 from termcolor import colored
+import torch
 
 class LunarGUI(QMainWindow):
     def __init__(self):
@@ -33,6 +34,20 @@ class LunarGUI(QMainWindow):
         # Apply modern style
         apply_stylesheet(self, theme='dark_teal.xml')
         
+        # Check CUDA status
+        self.check_cuda_status()
+        
+    def check_cuda_status(self):
+        cuda_available = torch.cuda.is_available()
+        if cuda_available:
+            cuda_device = torch.cuda.get_device_name(0)
+            cuda_version = torch.version.cuda
+            self.cuda_status = QLabel(f"CUDA Status: Enabled\nDevice: {cuda_device}\nCUDA Version: {cuda_version}")
+        else:
+            self.cuda_status = QLabel("CUDA Status: Disabled - GPU acceleration unavailable")
+        self.cuda_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cuda_status.setStyleSheet("color: #00ff00;" if cuda_available else "color: #ff0000;")
+        
     def create_main_page(self):
         page = QWidget()
         layout = QVBoxLayout()
@@ -42,6 +57,9 @@ class LunarGUI(QMainWindow):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setFont(QFont('Arial', 24, QFont.Weight.Bold))
         layout.addWidget(title)
+        
+        # CUDA Status
+        layout.addWidget(self.cuda_status)
         
         # Status indicators
         self.aimbot_status = QLabel("Aimbot Status: Inactive")
