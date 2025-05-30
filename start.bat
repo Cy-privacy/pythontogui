@@ -13,38 +13,36 @@ if %errorlevel% neq 0 (
     mkdir temp 2>nul
     cd temp
     
-    :: Download Python installer with progress
+    :: Download Python installer
     powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.10.5/python-3.10.5-amd64.exe' -OutFile 'python_install.exe'"
     
     if exist python_install.exe (
         echo Installing Python 3.10.5...
-        :: Install Python with all necessary flags
-        python_install.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_pip=1
+        :: Run installer with UI to ensure proper installation
+        start /wait python_install.exe
         
         :: Clean up
         cd ..
         rmdir /s /q temp
         
-        :: Update PATH for current session
-        set "PATH=%PATH%;%SystemDrive%\Python310;%SystemDrive%\Python310\Scripts;%LOCALAPPDATA%\Programs\Python\Python310;%LOCALAPPDATA%\Programs\Python\Python310\Scripts"
+        :: Force PATH update for current session
+        for /f "tokens=*" %%p in ('where python') do set "PYTHON_PATH=%%p"
+        set "PATH=%PATH%;%PYTHON_PATH%"
         
-        :: Wait for installation to complete
-        timeout /t 5 /nobreak > nul
+        :: Verify installation
+        python --version > nul 2>&1
+        if !errorlevel! neq 0 (
+            echo Python installation verification failed.
+            echo Please try running the installer manually from: https://www.python.org/downloads/release/python-3105/
+            pause
+            exit /b 1
+        )
     ) else (
         echo Failed to download Python installer.
         echo Please install Python 3.10.5 manually from: https://www.python.org/downloads/release/python-3105/
         pause
         exit /b 1
     )
-)
-
-:: Verify Python installation
-python --version > nul 2>&1
-if %errorlevel% neq 0 (
-    echo Python installation requires a system restart.
-    echo Please restart your computer and run this script again.
-    pause
-    exit /b 1
 )
 
 :: Install and upgrade pip
@@ -73,12 +71,12 @@ if %errorlevel% neq 0 (
     mkdir cuda_temp 2>nul
     cd cuda_temp
     
-    :: Download CUDA installer with progress
-    powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/12.6.0/local_installers/cuda_12.6.0_windows.exe' -OutFile 'cuda_install.exe'"
+    :: Download CUDA installer
+    powershell -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/12.6.0/network_installers/cuda_12.6.0_windows_network.exe' -OutFile 'cuda_install.exe'"
     
     if exist cuda_install.exe (
         echo Running CUDA installer...
-        start /wait cuda_install.exe /s /n
+        start /wait cuda_install.exe
         
         :: Clean up
         cd ..
