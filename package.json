@@ -1,0 +1,8 @@
+{
+  "name": "lunar-ai-aimbot",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "pyinstaller": "^5.13.2"
+  }
+}
