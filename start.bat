@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 nvidia-smi > nul 2>&1
 if %errorlevel% neq 0 (
     echo [X] NVIDIA GPU drivers not found
-    echo Please install NVIDIA drivers from:
+    echo Please install the latest NVIDIA drivers from:
     echo https://www.nvidia.com/download/index.aspx
     echo.
 ) else (
@@ -29,7 +29,7 @@ if %errorlevel% neq 0 (
 nvcc --version > nul 2>&1
 if %errorlevel% neq 0 (
     echo [X] CUDA Toolkit not found
-    echo Please install CUDA Toolkit 12.6 from:
+    echo Please install the latest CUDA Toolkit from:
     echo https://developer.nvidia.com/cuda-downloads
     echo.
 ) else (
